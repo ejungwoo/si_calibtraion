@@ -28,7 +28,7 @@ void create_gated_histograms()
             for (auto gate=0; gate<fNumGates; ++gate)
             {
                 TString title = Form("detector %d, strip %d, gate %d", det, strip, gate);
-                histLeftRightGate[det][strip][gate] = new TH2D(MakeHistName("LeftRight",det,strip,gate),title+";left;right",fNBinsE,fBinE1,fBinE2,fNBinsE,fBinE1,fBinE2);
+                histLeftRightGate[det][strip][gate] = new TH2D(MakeHistName("LeftRightGated",det,strip,gate),title+";left;right",fNBinsE,fBinE1,fBinE2,fNBinsE,fBinE1,fBinE2);
                 histLeftRightGate[det][strip][gate] -> SetStats(0);
             }
         }

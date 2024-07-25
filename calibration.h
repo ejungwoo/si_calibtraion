@@ -1,4 +1,4 @@
-int ne = 320;
+int fNBinsE = 320;
 double fBinE1 = 0;
 double fBinE2 = 6000;
 
@@ -11,7 +11,7 @@ TString fGateFileName;
 
 void SetEnergyBinning(int ne, double e1, double e2)
 {
-    ne = ne;
+    fNBinsE = ne;
     fBinE1 = e1;
     fBinE2 = e2;
 }
