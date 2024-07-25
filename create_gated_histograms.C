@@ -1,17 +1,13 @@
-#include "calibration.h"
+#include "si_calibration.h"
 
-void create_gated_histograms()
+void create_gated_histograms(int run=-1, bool drawExample=true)
 {
-    MakeRun(253);
+    MakeRun(run);
 
     TH1D* histEnergySum[40][8];
     TH2D* histLeftRightGate[40][8][2];
 
     double gatingRange[40][8][fNumGates][2] = {0}; // det, strip, gate, range
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-    bool drawFit = false;
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     auto spectrum = new TSpectrum(fNumGates*2);
     TF1 *fitGaus = new TF1("fitGaus","gaus(0)",0,6000);
@@ -28,7 +24,7 @@ void create_gated_histograms()
             for (auto gate=0; gate<fNumGates; ++gate)
             {
                 TString title = Form("detector %d, strip %d, gate %d", det, strip, gate);
-                histLeftRightGate[det][strip][gate] = new TH2D(MakeHistName("LeftRightGated",det,strip,gate),title+";left;right",fNBinsE,fBinE1,fBinE2,fNBinsE,fBinE1,fBinE2);
+                histLeftRightGate[det][strip][gate] = new TH2D(MakeHistName("LeftRightGated",det,strip,gate),title+";left;right",fNBinsA,fBinA1,fBinA2,fNBinsA,fBinA1,fBinA2);
                 histLeftRightGate[det][strip][gate] -> SetStats(0);
             }
         }
@@ -43,14 +39,18 @@ void create_gated_histograms()
     for (auto det=0; det<40; ++det)
     {
         TCanvas *cvs = nullptr;
-        if (drawFit) {
-            cvs = LKPainter::GetPainter() -> CanvasFull(Form("cvsEnergy_%d",det),0.95);
-            cvs -> Divide(3,3,0.01,0.01);
+
+        bool drawCurrentDet = false;
+        if (drawExample && (det==fExampleDet1||det==fExampleDet2))
+            drawCurrentDet = true;
+
+        if (drawCurrentDet) {
+            cvs = MakeCanvas("Energy",det);
         }
         for (auto strip=0; strip<8; ++strip)
         {
             auto hist = histEnergySum[det][strip];
-            if (drawFit) {
+            if (drawCurrentDet) {
                 cvs -> cd(strip+1);
                 hist -> Draw();
             }
@@ -59,7 +59,7 @@ void create_gated_histograms()
             for (auto iPeak=0; iPeak<fNumGates; ++iPeak)
             {
                 if (iPeak+1>numPeaks) {
-                    e_error << "(" << det << ", " << strip << ") : " << " number of peaks is " << numPeaks << endl;
+                    e_warning << "(" << det << ", " << strip << ") : " << " number of peaks is " << numPeaks << endl;
                     gatingRange[det][strip][iPeak][0] = 0;
                     gatingRange[det][strip][iPeak][1] = 0;
                     continue;
@@ -71,7 +71,7 @@ void create_gated_histograms()
                 gatingRange[det][strip][iPeak][0] = fitGaus -> GetParameter(1) - 3 * fitGaus -> GetParameter(2);
                 gatingRange[det][strip][iPeak][1] = fitGaus -> GetParameter(1) + 3 * fitGaus -> GetParameter(2);
 
-                if (drawFit) {
+                if (drawCurrentDet) {
                     cvs -> cd(strip+1);
                     fitGaus -> DrawClone("samel");
                 }
