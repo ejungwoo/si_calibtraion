@@ -1,5 +1,6 @@
-1   open si_calibration.h and fix fRun to the run number
-2   create_histograms.C
-3   create_gated_histograms.C
-4   run_slope_correction.C
-5   create_slope_corrected_histograms.C
+vi si_calibration.h # and fix fRun to the run number
+root make_histograms.C
+root run_slope_correction.C
+root make_c2_calibration_histograms.C
+root run_ballistic_correction.C
+root make_c2_calibration_histograms.C
