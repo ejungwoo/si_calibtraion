@@ -1,9 +1,10 @@
 #include "LKLogger.h"
 
-//int fRun = 199; int fDataType = 1;  // 0: 12dE+16E, 1: 12E
-int fRun = 303; int fDataType = 0;  // 0: 12dE+16E, 1: 12E
-//int fRun = 253; int fDataType = 0;  // 0: 12dE+16E, 1: 12E
+//int fRun = 199;
+int fRun = 303;
+//int fRun = 253;
 
+int fDataType = 0;  // 0: 12dE+16E, 1: 12E
 int fChooseGate = 1; // 0: Gd, 1: Am
 int fEntriesCut = 100; // will be updated as a function of total entries
 
@@ -74,9 +75,10 @@ class strip_group {
     public:
         strip_group() {}
         vector<strip_info> array;
-        TCanvas *MakeGroupCanvas(TString name) {
+        TCanvas *MakeGroupCanvas(TString name, int npads=-1) {
             TString cvsName = Form("cvs_%s_%d",name.Data(),array.at(0).det);
-            return MakeCanvas(cvsName,array.size());
+            if (npads<0) npads = array.size();
+            return MakeCanvas(cvsName,npads);
         }
 };
 vector<strip_info> fStripArrayR;
@@ -100,6 +102,10 @@ void MakeRun(int run=-1)
 {
     if (run<0) run = fRun;
     fRun = run;
+
+    if (fRun==199) fDataType = 1;  // 0: 12dE+16E, 1: 12E
+    if (fRun==303) fDataType = 0;  // 0: 12dE+16E, 1: 12E
+    if (fRun==253) fDataType = 0;  // 0: 12dE+16E, 1: 12E
 
     fStripArrayR.clear();
     fStripArrayS.clear();
@@ -129,7 +135,7 @@ void MakeRun(int run=-1)
     auto tree = (TTree*) file -> Get("event");
     fEntriesCut = tree -> GetEntries() / 10000;
     if (fEntriesCut<100) fEntriesCut = 100;
-    e_info << "run " << fRun << " " << tree -> GetEntries() << " (" << fEntriesCut << ")" << endl;
+    e_info << "run " << fRun << " " << tree -> GetEntries() << " (" << fEntriesCut << ")" << ", Data-type is " << fDataType << endl;
     file -> Close();
 
     if (fStark==nullptr)
@@ -246,6 +252,10 @@ TCanvas *MakeCanvas(TString cvsName, int npads)
     else if (npads==8||npads==9) {
         cvs = LKPainter::GetPainter() -> CanvasResize(cvsName,550,500,0.95);
         cvs -> Divide(3,3,0.002,0.002);
+    }
+    else if (npads==20) {
+        cvs = LKPainter::GetPainter() -> CanvasResize(cvsName,700,500,1);
+        cvs -> Divide(5,4,0.002,0.002);
     }
     else {
         cvs = LKPainter::GetPainter() -> CanvasDefault(cvsName);//,500,500,0.95);
