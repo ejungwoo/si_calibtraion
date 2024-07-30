@@ -31,9 +31,8 @@ void run_energy_calibration(int run=-1, bool drawExample=true)
     tree -> Branch("m2"     ,&m2     );
     tree -> Branch("s2"     ,&s2     );
     tree -> Branch("g0"     ,&g0     );
-    double gausParameters[40][8][3][3] = {0}; // det, strip, gate, range
-    int maxPeaks = 2;
-    auto spectrum = new TSpectrum(maxPeaks);
+    double gausParameters[40][2][8][3][3] = {0}; // det, strip, gate, range
+    auto spectrum = new TSpectrum(fMaxPeaks);
     TF1 *fitGaus = new TF1("fitGaus","gaus(0)",0,6000);
     for (auto dss : fStripArrayS)
     {
@@ -57,7 +56,7 @@ void run_energy_calibration(int run=-1, bool drawExample=true)
         }
         auto numPeaks = spectrum -> Search(hist,5,"goff nodraw");
         double* xPeaks = spectrum -> GetPositionX();
-        if (numPeaks<maxPeaks) {
+        if (numPeaks<fMaxPeaks) {
             e_warning << hist->GetName() << " #peaks =" << numPeaks << endl;
             tree -> Fill();
             continue;
@@ -67,7 +66,7 @@ void run_energy_calibration(int run=-1, bool drawExample=true)
             xPeaks[1] = xPeaks[0];
             xPeaks[0] = xx;
         }
-        for (auto iPeak=0; iPeak<maxPeaks; ++iPeak)
+        for (auto iPeak=0; iPeak<fMaxPeaks; ++iPeak)
         {
             double xPeak = xPeaks[iPeak];
             fitGaus -> SetRange(xPeak-5*xPeak*fExpectedResolution,xPeak+5*xPeak*fExpectedResolution);
@@ -76,9 +75,14 @@ void run_energy_calibration(int run=-1, bool drawExample=true)
             auto amp =   fitGaus -> GetParameter(0);
             auto mean =  fitGaus -> GetParameter(1);
             auto sigma = fitGaus -> GetParameter(2);
-            gausParameters[det][strip][iPeak][0] = amp;
-            gausParameters[det][strip][iPeak][1] = mean;
-            gausParameters[det][strip][iPeak][2] = sigma;
+            fitGaus -> SetRange(mean-1.0*sigma, mean+2.5*sigma);
+            hist -> Fit(fitGaus,"Q0NR");
+            amp =   fitGaus -> GetParameter(0);
+            mean =  fitGaus -> GetParameter(1);
+            sigma = fitGaus -> GetParameter(2);
+            gausParameters[det][side][strip][iPeak][0] = amp;
+            gausParameters[det][side][strip][iPeak][1] = mean;
+            gausParameters[det][side][strip][iPeak][2] = sigma;
             if (iPeak==0) {
                 a1 = amp;
                 m1 = mean;
@@ -115,21 +119,21 @@ void run_energy_calibration(int run=-1, bool drawExample=true)
             auto lg = new TLegend(0.35,0.60,0.85,0.88);
             lg -> SetBorderSize(0);
             lg -> SetFillStyle(0);
-            lg -> SetNColumns(maxPeaks);
-            for (auto iPeak=0; iPeak<maxPeaks; ++iPeak)
+            lg -> SetNColumns(fMaxPeaks);
+            for (auto iPeak=0; iPeak<fMaxPeaks; ++iPeak)
             {
-                auto amp = gausParameters[dss.det][dss.strip][iPeak][0];
-                auto mean = gausParameters[dss.det][dss.strip][iPeak][1];
-                auto sigma = gausParameters[dss.det][dss.strip][iPeak][2];
+                auto amp = gausParameters[dss.det][dss.side][dss.strip][iPeak][0];
+                auto mean = gausParameters[dss.det][dss.side][dss.strip][iPeak][1];
+                auto sigma = gausParameters[dss.det][dss.side][dss.strip][iPeak][2];
                 if (amp==0)
                     continue;
                 TF1 *fitGaus = new TF1(Form("fit%d%d%d%d",dss.det,dss.side,dss.strip,iPeak),"gaus(0)",0,6000);
                 fitGaus -> SetParameter(0,amp);
                 fitGaus -> SetParameter(1,mean);
                 fitGaus -> SetParameter(2,sigma);
-                fitGaus -> SetRange(mean-2.5*sigma, mean+2.5*sigma);
+                fitGaus -> SetRange(mean-1.0*sigma, mean+2.5*sigma);
                 fitGaus -> Draw("samel");
-                hist -> Fit(fitGaus,"Q0NR");
+                //hist -> Fit(fitGaus,"Q0NR");
                 lg -> AddEntry((TObject*)nullptr,Form("a_{%d} = %.1f",iPeak,amp),"");
                 lg -> AddEntry((TObject*)nullptr,Form("m_{%d} = %.1f",iPeak,mean),"");
                 lg -> AddEntry((TObject*)nullptr,Form("s_{%d} = %.1f",iPeak,sigma),"");

@@ -18,4 +18,4 @@ root run_slope_correction.C       # output = data/start*.c1.root        containi
 root make_c1_histograms.C         # output = data/start*.hist_c1.root   containing c0, c1 corrected histograms
 root run_ballistic_correction.C   # output = data/start*.c2.root        containing c2 correction parameters (tree)
 root make_c2_histograms.C         # output = data/start*.hist_c2.root   containing c2 corrected histograms
-root check_result.C               # to check result
+root summary.C                    # to check result

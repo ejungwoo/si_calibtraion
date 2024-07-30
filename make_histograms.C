@@ -54,7 +54,6 @@ void make_histograms(int calibration=0, int run=-1, bool drawExample=true)
         tree -> GetEntry(iEvent);
         auto numChannels = array -> GetEntries();
         if (iEvent%20000==0) cout << "Filling raw histogram " << iEvent << " / " << numEvents << " (" << 100*iEvent/numEvents << " %)" << endl;
-        if (numChannels!=3) continue;
         for (auto iChannel=0; iChannel<numChannels; ++iChannel)
         {
             auto channel = (LKSiChannel*) array -> At(iChannel);
@@ -85,9 +84,9 @@ void make_histograms(int calibration=0, int run=-1, bool drawExample=true)
                     if (calibration==1)
                     {
                         for (auto gate=0; gate<fNumGates; ++gate) {
-                            double eAlpha = (gate==0?f241AmAlphaEnergy1:f148GdAlphaEnergy);
-                            double range1 = eAlpha - 3*eAlpha*fExpectedResolution;
-                            double range2 = eAlpha + 3*eAlpha*fExpectedResolution;
+                            double eAlpha = (gate==0?f148GdAlphaEnergy:f241AmAlphaEnergy1);
+                            double range1 = eAlpha - 6*eAlpha*fExpectedResolution;
+                            double range2 = eAlpha + 6*eAlpha*fExpectedResolution;
                             if (sum>range1 && sum<range2) {
                                 fHistLeftRightGate     [det][side][strip][gate] -> Fill(energy1, energy2);
                                 fHistEnergyPositionGate[det][side][strip][gate] -> Fill(pos,sum);
@@ -143,6 +142,15 @@ void make_histograms(int calibration=0, int run=-1, bool drawExample=true)
             auto hist = fHistEnergySum[dss.det][dss.side][dss.strip];
             auto numPeaks = spectrum -> Search(hist,5,"goff nodraw");
             double* xPeaks = spectrum -> GetPositionX();
+            if (numPeaks<fMaxPeaks) {
+                e_warning << hist->GetName() << " #peaks =" << numPeaks << endl;
+                //continue;
+            }
+            if (xPeaks[1]<xPeaks[0]) {
+                auto xx = xPeaks[1];
+                xPeaks[1] = xPeaks[0];
+                xPeaks[0] = xx;
+            }
             for (auto iPeak=0; iPeak<fNumGates; ++iPeak)
             {
                 if (iPeak+1>numPeaks) {

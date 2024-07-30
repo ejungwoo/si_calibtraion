@@ -4,9 +4,14 @@
 int fRun = 303;
 //int fRun = 253;
 
+int fMaxPeaks = 2;
+
 int fDataType = 0;  // 0: 12dE+16E, 1: 12E
 int fChooseGate = 1; // 0: Gd, 1: Am
 int fEntriesCut = 100; // will be updated as a function of total entries
+//int fDrawingExampleDetectors[] = {32,33,34,35,36,37,38,39};
+int fDrawingExampleDetectors[] = {4,14,22,34,39};
+
 
       int    fNBinA = 200;
 const double fBinA1 = 0;
@@ -32,8 +37,6 @@ const int    fNumGates = 2;
 
 const double fExpectedResolution = 0.015;
 
-int fDrawingExampleDetectors[] = {4,14,22,34,39};
-
 //////////////////////////////////////////////////////////////////////////////////
 TH2D* fHistEnergyDetector[2];
 TH2D* fHistEnergyPositionAll;
@@ -50,6 +53,7 @@ TString fHistFileName;
 TString fC1HistFileName;
 TString fC2HistFileName;
 TString fDummyFileName;
+TString fAllParFileName;
 TString fC0ParFileName;
 TString fC1ParFileName;
 TString fC2ParFileName;
@@ -100,7 +104,12 @@ bool ContinueRegardingToDataType(int det)
 
 void MakeRun(int run=-1)
 {
-    if (run<0) run = fRun;
+    if (run<0) {
+        if (gSystem -> Getenv("RUN"))
+            fRun = atoi(gSystem -> Getenv("RUN"));
+        else
+            run = fRun;
+    }
     fRun = run;
 
     if (fRun==199) fDataType = 1;  // 0: 12dE+16E, 1: 12E
@@ -125,6 +134,7 @@ void MakeRun(int run=-1)
     fRecoFileName   = Form("%s/stark_0%d.reco.root",recoDir,run);
     fHistFileName   = Form("%s/stark_0%d.hist.root",dataDir,run);
     fC1HistFileName = Form("%s/stark_0%d.hist_c1.root",dataDir,run);
+    fAllParFileName = Form("%s/stark_0%d.par.root",dataDir,run);
     fC0ParFileName  = Form("%s/stark_0%d.c0.root",dataDir,run);
     fC1ParFileName  = Form("%s/stark_0%d.c1.root",dataDir,run);
     fC2HistFileName = Form("%s/stark_0%d.hist_c2.root",dataDir,run);
@@ -222,13 +232,14 @@ TH1D* MakeHist1(TString xname, TString yname, int det, int side, int strip, int 
         else {
             if      (det<32  && side==1) { nx = 200; x1 = 200; x2 = 1200; }
             else if (det>=32 && side==1) { nx = 200; x1 = 500; x2 = 2200; }
-            else if (det>=32 && side==0) { nx = 200; x1 = 200; x2 = 2000; }
-            else                         { nx = 200; x1 = 0;   x2 = 4000; }
+            else if (det==39 && side==0 && (strip==2 || strip==3) ) { nx = 200; x1 = 200; x2 = 2000; }
+            else if (det>=32 && side==0) { nx = 200; x1 = 0; x2 = 2800; }
+            else                         { nx = 200; x1 = 0; x2 = 4000; }
         }
     }
 
     auto hist = new TH1D(MakeHistName(xname,yname,det,side,strip,gate),MakeHistTitle(xname,yname,det,side,strip,gate),nx,x1,x2);
-    hist -> SetFillColor(29);
+    //hist -> SetFillColor(29);
     return hist;
 }
 
@@ -274,6 +285,7 @@ bool IsPositionSensitiveStrip(int det, int side=1)
     auto detector = fStark -> GetSiDetector(det);
     //detector->Print();
     //lk_debug << "det=" << det << " numjd=" << detector->GetNumJunctionDirection()  <<  " side=" << side << " " << (detector->GetNumJunctionDirection()==2)  <<  " " << (side==0) << endl;
+    //if (det==39) cout << det << " " << detector->GetNumJunctionDirection() << endl;
     if (detector->GetNumJunctionDirection()==2 && side==0)
         return true;
     return false;

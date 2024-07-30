@@ -44,7 +44,6 @@ void make_c2_histograms(int run=-1, bool drawExample=true)
         tree -> GetEntry(iEvent);
         auto numChannels = array -> GetEntries();
         if (iEvent%20000==0) cout << "Filling raw histogram " << iEvent << " / " << numEvents << " (" << 100*iEvent/numEvents << " %)" << endl;
-        if (numChannels!=3) continue;
         for (auto iChannel=0; iChannel<numChannels; ++iChannel)
         {
             auto channel = (LKSiChannel*) array -> At(iChannel);
@@ -58,6 +57,7 @@ void make_c2_histograms(int run=-1, bool drawExample=true)
                 double g0 = fC0Parameters[det][side][strip];
                 auto energy = channel -> GetEnergy() * g0;
                 fHistEnergy[det][side][strip] -> Fill(energy);
+                //if (38*8<det*numStrips+strip) cout << det << " " << side << strip  << endl;
                 fHistEnergyDetector[side] -> Fill(det*numStrips+strip,energy);
             }
             else
