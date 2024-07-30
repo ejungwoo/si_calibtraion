@@ -106,7 +106,7 @@ void MakeRun(int run=-1)
 {
     if (run<0) {
         if (gSystem -> Getenv("RUN"))
-            fRun = atoi(gSystem -> Getenv("RUN"));
+            run = atoi(gSystem -> Getenv("RUN"));
         else
             run = fRun;
     }
