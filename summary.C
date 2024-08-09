@@ -105,8 +105,9 @@ void summary()
     /////////////////////////////////////////////////////////////////////
     // Write parameters
     /////////////////////////////////////////////////////////////////////
-    for (auto i=0; i<40; ++i) check(i,false);
-    write_parameters();
+    for (auto i=0; i<40; ++i) check(i,false); write_parameters();
+    //for (auto i=0; i<10; ++i) check(i,true);
+    //for (auto i=32; i<38; ++i) check(i,true);
 }
 
 void check(int det, bool drawFigures)
@@ -147,47 +148,61 @@ void check(int det, bool drawFigures)
         auto lg = new TLegend(0.35,0.75,0.80,0.88);
         lg -> SetBorderSize(0);
         lg -> SetFillStyle(0);
-        auto numPeaks = spectrum -> Search(hist,5,"goff nodraw");
-        double* xPeaks = spectrum -> GetPositionX();
-        if (xPeaks[1]<xPeaks[0]) {
-            auto xx = xPeaks[1];
-            xPeaks[1] = xPeaks[0];
-            xPeaks[0] = xx;
-        }
+        TF1 *fits[2];
+        fits[0] = nullptr;
+        fits[1] = nullptr;
         double x1=-999, x2=-999;
         double m1=-999, m2=-999;
         double s1=-999, s2=-999;
-        TF1 *fits[2];
-        for (auto iPeak=0; iPeak<fNumGates; ++iPeak)
+        if (hist->GetEntries()>fEntriesCut)
         {
-            if (iPeak+1>numPeaks) {
-                e_warning << hist -> GetName() << " (" << dss.det << ", " << dss.side << ", " << dss.strip << ") : " << " #peaks = " << numPeaks << " #entries = " << hist -> GetEntries() << endl;
-                continue;
+            auto numPeaks = spectrum -> Search(hist,5,"goff nodraw");
+            double* xPeaks = spectrum -> GetPositionX();
+            if (xPeaks[1]<xPeaks[0]) {
+                auto xx = xPeaks[1];
+                xPeaks[1] = xPeaks[0];
+                xPeaks[0] = xx;
             }
-            double xPeak = xPeaks[iPeak];
-            fits[iPeak] = new TF1(Form("fitGaus_%d_%d_%d_%d",dss.det,dss.side,dss.strip,iPeak),"gaus(0)",0,6000);
-            auto fit = fits[iPeak];
-            fit -> SetRange(xPeak-5*xPeak*fExpectedResolution,xPeak+5*xPeak*fExpectedResolution);
-            fit -> SetParameters(hist->GetBinContent(hist->FindBin(xPeak)),xPeak,xPeak*fExpectedResolution);
-            hist -> Fit(fit,"Q0NR");
-            auto amp = fit -> GetParameter(0);
-            auto mean = fit -> GetParameter(1);
-            auto sigma = fit -> GetParameter(2);
-            if (iPeak==0) { x1 = mean - 20*sigma; m1 = mean; s1 = sigma; }
-            if (iPeak==1) { x2 = mean + 20*sigma; m2 = mean; s2 = sigma; }
-            fit -> SetRange(mean-2.5*sigma,mean+2.5*sigma);
-            lg -> AddEntry((TObject*)nullptr,Form("mean_{%d} = %.3f",iPeak,mean),"");
+            for (auto iPeak=0; iPeak<fNumGates; ++iPeak)
+            {
+                if (iPeak+1>numPeaks) {
+                    e_warning << hist -> GetName() << " (" << dss.det << ", " << dss.side << ", " << dss.strip << ") : " << " #peaks = " << numPeaks << " #entries = " << hist -> GetEntries() << endl;
+                    continue;
+                }
+                double xPeak = xPeaks[iPeak];
+                fits[iPeak] = new TF1(Form("fitGaus_%d_%d_%d_%d",dss.det,dss.side,dss.strip,iPeak),"gaus(0)",0,6000);
+                auto fit = fits[iPeak];
+                fit -> SetRange(xPeak-5*xPeak*fExpectedResolution,xPeak+5*xPeak*fExpectedResolution);
+                fit -> SetParameters(hist->GetBinContent(hist->FindBin(xPeak)),xPeak,xPeak*fExpectedResolution);
+                hist -> Fit(fit,"Q0NR");
+                auto amp = fit -> GetParameter(0);
+                auto mean = fit -> GetParameter(1);
+                auto sigma = fit -> GetParameter(2);
+                fit -> SetRange(mean-2.5*sigma,mean+2.5*sigma);
+                if (dss.det==34||dss.det==35||dss.det==36)
+                    fit -> SetRange(mean-.8*sigma,mean+2.5*sigma);
+                hist -> Fit(fit,"Q0NR");
+                amp = fit -> GetParameter(0);
+                mean = fit -> GetParameter(1);
+                sigma = fit -> GetParameter(2);
+                if (iPeak==0) { x1 = mean - 20*sigma; m1 = mean; s1 = sigma; }
+                if (iPeak==1) { x2 = mean + 20*sigma; m2 = mean; s2 = sigma; }
+                //fit -> SetRange(mean-2.5*sigma,mean+2.5*sigma);
+                lg -> AddEntry((TObject*)nullptr,Form("mean_{%d} = %.3f",iPeak,mean),"");
+            }
+            resolutionArray[dss.det][dss.side][dss.strip] = 100*s1/m1;
         }
         if (drawFigures)
         {
             if (x1>-998&&x2>-998)
                 hist -> GetXaxis() -> SetRangeUser(x1,x2);
             hist -> Draw();
-            for (auto iPeak=0; iPeak<fNumGates; ++iPeak)
-                fits[iPeak] -> Draw("samel");
+            for (auto iPeak=0; iPeak<fNumGates; ++iPeak) {
+                if (fits[iPeak]!=nullptr)
+                    fits[iPeak] -> Draw("samel");
+            }
             lg -> Draw("same");
         }
-        resolutionArray[dss.det][dss.side][dss.strip] = 100*s1/m1;
     };
 
     /////////////////////////////////////////////////////////////////////
@@ -196,7 +211,7 @@ void check(int det, bool drawFigures)
     int icvs = 1;
     TCanvas *cvs = nullptr;
     if (drawFigures) {
-        cvs = dssArrayS.MakeGroupCanvas("cvsAll",20);
+        cvs = dssArrayS.MakeGroupCanvas(Form("summary_det%d",det),20);
         for (auto dss : dssArrayR.array) { cvs -> cd(icvs++); histEnergyPosition[dss.det][dss.side][dss.strip] -> Draw("colz"); }
     }
 
@@ -213,6 +228,8 @@ void check(int det, bool drawFigures)
         auto hist = histEnergy[dss.det][dss.side][dss.strip];
         fitAndDraw(dss,hist);
     }
+
+    if (drawFigures) cvs -> SaveAs(Form("figures/%s.png",cvs->GetName()));
 }
 
 void get_parameters()
@@ -271,6 +288,9 @@ void write_parameters()
     int det, side, strip;
     double entries, g0, g1, g2, b0, b1, b2, resolution;
     auto fpar = new TFile(fAllParFileName,"recreate");
+
+    (new TParameter<double>("calibration_energy",f241AmAlphaEnergy1)) -> Write();;
+
     auto tree = new TTree("parameters","all (c0,c1,c2)");
     tree -> Branch("det"    ,&det    );
     tree -> Branch("side"   ,&side   );
